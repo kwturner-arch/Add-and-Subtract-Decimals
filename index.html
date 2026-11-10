@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decimal World Super Quest</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tone.js for retro sound effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Fredoka:wght@400;600;700&display=swap');
+        
+        .pixel-font {
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            user-select: none;
+        }
+
+        /* Retro NES Style Border Box */
+        .pixel-card {
+            border: 4px solid #38bdf8;
+            box-shadow: 0 0 0 4px #0284c7, 0 10px 20px rgba(0,0,0,0.5);
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+        }
+
+        /* Jump & Walk Keyframe Animations for HTML/Canvas sprites */
+        .mario-bounce {
+            animation: marioHop 0.6s ease-in-out infinite alternate;
+        }
+        @keyframes marioHop {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-12px); }
+        }
+
+        /* Game Canvas Style */
+        #gameCanvas {
+            background: linear-gradient(to bottom, #38bdf8 0%, #7dd3fc 60%, #4ade80 60%, #22c55e 100%);
+            border-radius: 1rem;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.2), 0 8px 25px rgba(0,0,0,0.4);
+        }
+
+        /* Option Buttons Retro Hover Effect */
+        .choice-btn {
+            transition: all 0.15s ease-in-out;
+        }
+        .choice-btn:hover {
+            transform: translateX(6px) scale(1.01);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-2 md:p-6">
+
+    <!-- Top Status Bar (Score, Lives, Level Map) -->
+    <header class="max-w-4xl mx-auto w-full bg-slate-900 border-2 border-indigo-500 rounded-2xl p-3 md:p-4 mb-3 shadow-xl">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <!-- Game Logo & Title -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 md:w-12 md:h-12 bg-red-500 rounded-xl border-2 border-yellow-300 flex items-center justify-center text-white text-xl md:text-2xl font-bold shadow">
+                    <i class="fa-solid fa-gamepad"></i>
+                </div>
+                <div>
+                    <h1 class="pixel-font text-amber-400 text-xs md:text-sm tracking-wider">DECIMAL QUEST</h1>
+                    <p class="text-xs text-indigo-300">Lessons 10 & 11 • World 1</p>
+                </div>
+            </div>
+
+            <!-- Dashboard Stats -->
+            <div class="flex items-center gap-3 bg-slate-950 px-4 py-2 rounded-xl border border-slate-700">
+                <!-- Coins / Stars -->
+                <div class="flex items-center gap-1.5" title="Coins Collected">
+                    <i class="fa-solid fa-coins text-yellow-400 text-lg"></i>
+                    <span id="score-val" class="pixel-font text-xs text-yellow-300">000</span>
+                </div>
+                
+                <div class="h-4 w-px bg-slate-700"></div>
+
+                <!-- Stars / Power Streak -->
+                <div class="flex items-center gap-1.5" title="Answer Streak">
+                    <i class="fa-solid fa-star text-amber-300 text-lg"></i>
+                    <span id="streak-val" class="pixel-font text-xs text-amber-300">0</span>
+                </div>
+
+                <div class="h-4 w-px bg-slate-700"></div>
+
+                <!-- Audio Toggle -->
+                <button onclick="toggleAudio()" class="text-slate-400 hover:text-yellow-300 transition-colors">
+                    <i id="audio-icon" class="fa-solid fa-volume-high"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Game Container -->
+    <main class="max-w-4xl mx-auto w-full flex-grow flex flex-col justify-center">
+        
+        <!-- START / INTRO SCREEN -->
+        <div id="start-screen" class="pixel-card rounded-3xl p-6 md:p-10 text-center">
+            <div class="w-20 h-20 bg-amber-400 rounded-2xl flex items-center justify-center mx-auto mb-4 border-4 border-yellow-200 mario-bounce shadow-lg">
+                <i class="fa-solid fa-user-ninja text-4xl text-slate-950"></i>
+            </div>
+            <h2 class="pixel-font text-xl md:text-2xl text-yellow-400 mb-4 leading-relaxed">SUPER DECIMAL BROS!</h2>
+            <p class="text-slate-300 max-w-lg mx-auto mb-6 text-sm md:text-base leading-relaxed">
+                Help hero <strong>Math-io</strong> run across Decimal World! Answer multiple-choice questions from your study guide to smash blocks, defeat decimal monsters, and claim the Gold Crown!
+            </p>
+            <button onclick="startGame()" class="pixel-font px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm md:text-base rounded-2xl shadow-xl hover:scale-105 transition-all">
+                <i class="fa-solid fa-play mr-2"></i> START QUEST
+            </button>
+        </div>
+
+        <!-- ACTIVE GAME SCREEN -->
+        <div id="game-view" class="hidden flex flex-col gap-4">
+            
+            <!-- Side-scrolling Quest Stage Visual Canvas -->
+            <div class="relative w-full overflow-hidden">
+                <canvas id="gameCanvas" width="800" height="180" class="w-full h-auto"></canvas>
+                
+                <!-- World Checkpoint Tag -->
+                <div class="absolute top-3 left-3 bg-slate-950/80 backdrop-blur-md px-3 py-1 rounded-full border border-indigo-400/40 text-xs font-semibold text-amber-300 flex items-center gap-2">
+                    <i class="fa-solid fa-flag text-red-400"></i>
+                    <span id="level-tag">Stage 1 / 10</span>
+                </div>
+            </div>
+
+            <!-- Question Card Box -->
+            <div id="question-card" class="bg-slate-900 border-2 border-indigo-500/50 rounded-2xl p-4 md:p-6 shadow-2xl relative">
+                <!-- Question Badge Header -->
+                <div class="flex justify-between items-center mb-3">
+                    <span id="question-topic" class="px-3 py-1 bg-indigo-950 border border-indigo-500/30 text-amber-300 text-xs font-bold rounded-lg uppercase tracking-wider">
+                        Lesson 10 • Question 1
+                    </span>
+                    <button onclick="showHint()" class="text-xs font-semibold text-indigo-300 hover:text-yellow-300 flex items-center gap-1">
+                        <i class="fa-solid fa-lightbulb text-yellow-400"></i> Need Hint?
+                    </button>
+                </div>
+
+                <!-- Problem Prompt -->
+                <h3 id="question-text" class="text-base md:text-lg font-bold text-white mb-4 leading-relaxed">
+                    <!-- Dynamic Question Text -->
+                </h3>
+
+                <!-- Multiple Choice Options (4 Choices) -->
+                <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                    <!-- Dynamically Rendered Choice Buttons -->
+                </div>
+
+                <!-- Feedback Banner -->
+                <div id="feedback-banner" class="hidden p-3.5 rounded-xl text-sm font-semibold flex items-start gap-2.5">
+                    <i id="feedback-icon" class="text-lg mt-0.5"></i>
+                    <div id="feedback-text"></div>
+                </div>
+
+                <!-- Next Question Button (Appears after correct answer) -->
+                <div class="flex justify-end mt-3">
+                    <button id="next-btn" onclick="advanceQuest()" class="hidden pixel-font px-6 py-3 bg-amber-400 hover:bg-yellow-300 text-slate-950 text-xs rounded-xl shadow-lg transition-transform active:scale-95 flex items-center gap-2">
+                        <span>CONTINUE QUEST</span>
+                        <i class="fa-solid fa-forward"></i>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- VICTORY SCREEN -->
+        <div id="victory-screen" class="hidden pixel-card rounded-3xl p-6 md:p-10 text-center">
+            <div class="w-24 h-24 bg-yellow-400/20 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-yellow-400 mario-bounce">
+                <i class="fa-solid fa-crown text-5xl text-yellow-400"></i>
+            </div>
+            <h2 class="pixel-font text-2xl text-yellow-400 mb-2">QUEST COMPLETED!</h2>
+            <p class="text-indigo-200 max-w-md mx-auto mb-6 text-sm md:text-base">
+                You helped Math-io finish the quest and mastered Decimal Addition and Subtraction!
+            </p>
+
+            <div class="grid grid-cols-2 gap-4 max-w-xs mx-auto mb-8">
+                <div class="bg-slate-950 p-4 rounded-xl border border-indigo-500/40">
+                    <p class="text-xs text-indigo-300 font-bold uppercase mb-1">TOTAL COINS</p>
+                    <p id="final-coins" class="pixel-font text-xl text-yellow-300">0</p>
+                </div>
+                <div class="bg-slate-950 p-4 rounded-xl border border-indigo-500/40">
+                    <p class="text-xs text-indigo-300 font-bold uppercase mb-1">BEST STREAK</p>
+                    <p id="final-streak" class="pixel-font text-xl text-amber-400">0</p>
+                </div>
+            </div>
+
+            <button onclick="startGame()" class="pixel-font px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs md:text-sm rounded-xl shadow-lg">
+                <i class="fa-solid fa-rotate-right mr-2"></i> REPLAY QUEST
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-4 text-center text-xs text-slate-500">
+        <p>5th Grade Math • Unit 2 (Lessons 10 & 11) • Decimal Quest Mario Edition</p>
+    </footer>
+
+    <!-- Game Engine & Interactive Script -->
+    <script>
+        // MULTIPLE CHOICE DATASET (Lessons 10 & 11)
+        const questQuestions = [
+            // LESSON 10: ADD DECIMALS
+            {
+                lesson: "Lesson 10",
+                title: "Problem 1: Add Decimals",
+                question: "Find the sum of 6.28 + 13.5",
+                options: [
+                    "19.78",
+                    "19.33",
+                    "7.63",
+                    "19.88"
+                ],
+                correctIndex: 0,
+                hint: "Line up decimal points vertically and append a zero to 13.5 so it becomes 13.50 before adding.",
+                wrongExplain: "Remember to line up decimals: 6.28 + 13.50 = 19.78."
+            },
+            {
+                lesson: "Lesson 10",
+                title: "Problem 2: Word Problem",
+                question: "Arthur spent 2.05 hours doing yard work, 1.37 hours cleaning, and 0.8 hours folding laundry. How much time has Arthur spent doing chores altogether?",
+                options: [
+                    "3.42 hours",
+                    "4.22 hours",
+                    "4.12 hours",
+                    "3.50 hours"
+                ],
+                correctIndex: 1,
+                hint: "Add all three numbers: 2.05 + 1.37 + 0.80. Regroup 12 hundredths to the tenths place.",
+                wrongExplain: "5 + 7 + 0 = 12 hundredths (write 2, carry 1). 1 + 0 + 3 + 8 = 12 tenths (write 2, carry 1). 1 + 2 + 1 = 4 ones. Total = 4.22 hours."
+            },
+            {
+                lesson: "Lesson 10",
+                title: "Problem 3: Error Analysis",
+                question: "David and Mario calculated 8.47 + 2.78. David got 11.25. Mario got 10.15. Who is correct and why?",
+                options: [
+                    "David is correct. Mario forgot to carry 1 to the ones place when 4 + 7 + 1 regrouped to 12.",
+                    "Mario is correct because David added the hundredths wrong.",
+                    "Both are incorrect; the true sum is 11.15.",
+                    "Mario is correct because you never regroup decimals."
+                ],
+                correctIndex: 0,
+                hint: "Add 8.47 + 2.78 step-by-step. In the tenths column: 4 + 7 + 1 carried = 12 tenths. You must carry 1 into the ones place!",
+                wrongExplain: "David is correct! Mario forgot to carry the 1 into the ones place (8 + 2 + 1 = 11)."
+            },
+            {
+                lesson: "Lesson 10",
+                title: "Problem 4: Thousandths Addition",
+                question: "Find the sum: 83.157 + 25.352",
+                options: [
+                    "108.409",
+                    "108.509",
+                    "108.519",
+                    "107.509"
+                ],
+                correctIndex: 1,
+                hint: "Add starting from thousandths: 7 + 2 = 9. Next: 5 + 5 = 10 (write 0, carry 1).",
+                wrongExplain: "83.157 + 25.352 = 108.509. Pay close attention to regrouping 5 hundredths + 5 hundredths."
+            },
+            {
+                lesson: "Lesson 10",
+                title: "Problem 5: Liquid Volume",
+                question: "Lucas pours two liquids into a bucket: 3.54 Liters and 2.8 Liters. How much liquid does he have in the bucket now?",
+                options: [
+                    "6.34 Liters",
+                    "3.82 Liters",
+                    "5.34 Liters",
+                    "6.44 Liters"
+                ],
+                correctIndex: 0,
+                hint: "Add 3.54 + 2.80. Align tenths column (5 + 8 = 13 tenths).",
+                wrongExplain: "3.54 + 2.80 = 6.34 Liters. 5 + 8 tenths equals 13 tenths (write 3, carry 1 to ones)."
+            },
+
+            // LESSON 11: SUBTRACT DECIMALS
+            {
+                lesson: "Lesson 11",
+                title: "Problem 1: Model Equation",
+                question: "Sebastian reads 0.6 hours on Sunday and 0.24 hours on Monday. The visual grid shows 0.6 shaded with 0.24 crossed out. Which equation matches the model?",
+                options: [
+                    "0.6 - 0.24 = 0.36",
+                    "0.6 - 0.36 = 0.24",
+                    "1.0 - 0.6 = 0.4",
+                    "0.6 + 0.24 = 0.84"
+                ],
+                correctIndex: 0,
+                hint: "Starting shaded total is 0.6. The portion crossed out is 0.24. The remaining shaded squares equal 0.36.",
+                wrongExplain: "The model starts with 0.6, subtracts the crossed-out 0.24, leaving 0.36."
+            },
+            {
+                lesson: "Lesson 11",
+                title: "Problem 2: Difference in Weight",
+                question: "Three bags of flour weigh 5.47 lbs, 4.84 lbs, and 5.72 lbs. Find the difference between the bag with the MOST flour and the bag with the LEAST.",
+                options: [
+                    "0.63 lbs",
+                    "0.88 lbs",
+                    "0.78 lbs",
+                    "1.12 lbs"
+                ],
+                correctIndex: 1,
+                hint: "Most flour = 5.72 lbs. Least flour = 4.84 lbs. Calculate: 5.72 - 4.84.",
+                wrongExplain: "5.72 - 4.84 = 0.88 lbs. Regroup 7 tenths to 6 tenths to make 12 - 4 = 8 in hundredths."
+            },
+            {
+                lesson: "Lesson 11",
+                title: "Problem 3: Drop in Score",
+                question: "Ms. Marcos's class average dropped from 86.26 points on Test 1 to 78.43 points on Test 2. By how many points did the class average drop?",
+                options: [
+                    "7.83 points",
+                    "8.23 points",
+                    "7.23 points",
+                    "8.83 points"
+                ],
+                correctIndex: 0,
+                hint: "Subtract Test 2 from Test 1: 86.26 - 78.43.",
+                wrongExplain: "86.26 - 78.43 = 7.83 points. Regroup 6 ones to 5 ones to make 12 - 4 = 8 in the tenths."
+            },
+            {
+                lesson: "Lesson 11",
+                title: "Problem 4: Subtraction with Regrouping",
+                question: "Find the value of the expression: 32.6 - 8.57",
+                options: [
+                    "24.03",
+                    "24.13",
+                    "23.03",
+                    "24.17"
+                ],
+                correctIndex: 0,
+                hint: "Write 32.6 as 32.60. Regroup 6 tenths into 5 tenths and 10 hundredths: 10 - 7 = 3.",
+                wrongExplain: "32.60 - 8.57 = 24.03. Don't forget to append a zero to 32.6!"
+            },
+            {
+                lesson: "Lesson 11",
+                title: "Problem 6: Store Budgeting",
+                question: "Roxana has $50. Her total so far is $42.37. She finds an item for $12.25 and says 'I have just enough!' Is she correct?",
+                options: [
+                    "No, because $42.37 + $12.25 = $54.62, which exceeds her $50 budget.",
+                    "Yes, because $50 - $42.37 is exactly $12.25.",
+                    "Yes, because her total comes out to $49.99.",
+                    "No, because she only has $2.00 left."
+                ],
+                correctIndex: 0,
+                hint: "Calculate the total cost ($42.37 + $12.25) to check if it fits in her $50 limit.",
+                wrongExplain: "$42.37 + $12.25 = $54.62. Since $54.62 > $50, she does not have enough money!"
+            }
+        ];
+
+        // GAME STATE
+        let currentIdx = 0;
+        let scoreCoins = 0;
+        let currentStreak = 0;
+        let bestStreak = 0;
+        let audioEnabled = true;
+
+        // CANVAS MARIO STAGE ANIMATION STATE
+        let canvas, ctx;
+        let marioX = 50;
+        let targetMarioX = 50;
+        let marioY = 110;
+        let marioJumping = false;
+        let jumpVelocity = 0;
+        let obstacles = [];
+
+        window.onload = function() {
+            canvas = document.getElementById("gameCanvas");
+            ctx = canvas.getContext("2d");
+            renderCanvasStage();
+        };
+
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const icon = document.getElementById("audio-icon");
+            if (audioEnabled) {
+                icon.className = "fa-solid fa-volume-high text-slate-400";
+            } else {
+                icon.className = "fa-solid fa-volume-xmark text-red-400";
+            }
+        }
+
+        function playRetroSound(type) {
+            if (!audioEnabled) return;
+            try {
+                const synth = new Tone.Synth().toDestination();
+                const now = Tone.now();
+                if (type === "jump") {
+                    synth.triggerAttackRelease("C4", "16n", now);
+                    synth.triggerAttackRelease("G4", "16n", now + 0.08);
+                } else if (type === "coin") {
+                    synth.triggerAttackRelease("B5", "16n", now);
+                    synth.triggerAttackRelease("E6", "8n", now + 0.08);
+                } else if (type === "wrong") {
+                    synth.triggerAttackRelease("F3", "8n", now);
+                    synth.triggerAttackRelease("C3", "8n", now + 0.12);
+                } else if (type === "win") {
+                    synth.triggerAttackRelease("C4", "8n", now);
+                    synth.triggerAttackRelease("E4", "8n", now + 0.1);
+                    synth.triggerAttackRelease("G4", "8n", now + 0.2);
+                    synth.triggerAttackRelease("C5", "4n", now + 0.3);
+                }
+            } catch(e) {}
+        }
+
+        function startGame() {
+            currentIdx = 0;
+            scoreCoins = 0;
+            currentStreak = 0;
+            bestStreak = 0;
+            
+            updateHUD();
+
+            document.getElementById("start-screen").classList.add("hidden");
+            document.getElementById("victory-screen").classList.add("hidden");
+            document.getElementById("game-view").classList.remove("hidden");
+
+            marioX = 50;
+            targetMarioX = 50;
+            setupObstacles();
+            loadQuestion();
+            animateCanvas();
+        }
+
+        function setupObstacles() {
+            obstacles = [];
+            const stepWidth = (canvas.width - 120) / questQuestions.length;
+            for(let i = 0; i < questQuestions.length; i++) {
+                obstacles.push({
+                    x: 100 + (i * stepWidth),
+                    type: i % 2 === 0 ? "goomba" : "block",
+                    cleared: false
+                });
+            }
+        }
+
+        function updateHUD() {
+            document.getElementById("score-val").textContent = String(scoreCoins).padStart(3, '0');
+            document.getElementById("streak-val").textContent = currentStreak;
+            document.getElementById("level-tag").textContent = `Stage ${currentIdx + 1} / ${questQuestions.length}`;
+        }
+
+        function loadQuestion() {
+            const q = questQuestions[currentIdx];
+            updateHUD();
+
+            document.getElementById("question-topic").textContent = `${q.lesson} • ${q.title}`;
+            document.getElementById("question-text").textContent = q.question;
+
+            // Reset Feedback & Buttons
+            const fbBanner = document.getElementById("feedback-banner");
+            fbBanner.classList.add("hidden");
+
+            document.getElementById("next-btn").classList.add("hidden");
+
+            // Render Options
+            const optsContainer = document.getElementById("options-container");
+            optsContainer.innerHTML = "";
+
+            q.options.forEach((optText, i) => {
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "choice-btn w-full text-left p-4 rounded-xl bg-slate-800/90 border-2 border-indigo-500/40 hover:border-amber-400 hover:bg-indigo-950 text-slate-100 font-semibold flex items-center gap-3";
+                btn.onclick = () => handleChoiceSelect(i);
+
+                const badge = document.createElement("span");
+                badge.className = "w-7 h-7 rounded-lg bg-indigo-950 border border-amber-400/50 flex items-center justify-center font-bold text-xs text-amber-300 pixel-font";
+                badge.textContent = String.fromCharCode(65 + i);
+
+                const text = document.createElement("span");
+                text.className = "text-sm md:text-base";
+                text.textContent = optText;
+
+                btn.appendChild(badge);
+                btn.appendChild(text);
+                optsContainer.appendChild(btn);
+            });
+        }
+
+        function showHint() {
+            const q = questQuestions[currentIdx];
+            showFeedback(`<strong>Hint:</strong> ${q.hint}`, "hint");
+        }
+
+        function showFeedback(msg, type) {
+            const banner = document.getElementById("feedback-banner");
+            const icon = document.getElementById("feedback-icon");
+            const text = document.getElementById("feedback-text");
+
+            banner.className = "p-3.5 rounded-xl text-sm font-semibold flex items-start gap-2.5 transition-all";
+            
+            if (type === "correct") {
+                banner.classList.add("bg-emerald-950", "border", "border-emerald-500", "text-emerald-200");
+                icon.className = "fa-solid fa-circle-check text-emerald-400 text-lg";
+            } else if (type === "wrong") {
+                banner.classList.add("bg-rose-950", "border", "border-rose-500", "text-rose-200");
+                icon.className = "fa-solid fa-circle-xmark text-rose-400 text-lg";
+            } else {
+                banner.classList.add("bg-amber-950", "border", "border-amber-500", "text-amber-200");
+                icon.className = "fa-solid fa-lightbulb text-amber-400 text-lg";
+            }
+
+            text.innerHTML = msg;
+            banner.classList.remove("hidden");
+        }
+
+        function handleChoiceSelect(selectedIndex) {
+            const q = questQuestions[currentIdx];
+            const buttons = document.querySelectorAll(".choice-btn");
+
+            // Disable all buttons once an option is selected
+            buttons.forEach(b => b.onclick = null);
+
+            if (selectedIndex === q.correctIndex) {
+                // CORRECT
+                playRetroSound("coin");
+                playRetroSound("jump");
+                scoreCoins += 10;
+                currentStreak++;
+                if (currentStreak > bestStreak) bestStreak = currentStreak;
+
+                buttons[selectedIndex].classList.add("border-emerald-400", "bg-emerald-900/40");
+                showFeedback(`<strong>Super! Correct Answer!</strong> (+10 Coins)`, "correct");
+
+                // Trigger Mario Canvas Jump Action
+                triggerMarioJump();
+
+                // Move Mario Forward
+                targetMarioX = Math.min(canvas.width - 70, marioX + (canvas.width - 120) / questQuestions.length);
+                if (obstacles[currentIdx]) obstacles[currentIdx].cleared = true;
+
+                if (window.confetti) {
+                    confetti({ particleCount: 30, spread: 50, origin: { y: 0.8 } });
+                }
+
+                document.getElementById("next-btn").classList.remove("hidden");
+            } else {
+                // INCORRECT
+                playRetroSound("wrong");
+                currentStreak = 0;
+                buttons[selectedIndex].classList.add("border-rose-500", "bg-rose-900/40");
+                
+                // Highlight correct button
+                buttons[q.correctIndex].classList.add("border-amber-400", "bg-indigo-900/50");
+
+                showFeedback(`<strong>Not quite!</strong> ${q.wrongExplain}`, "wrong");
+
+                // Allow retry after viewing error explanation
+                setTimeout(() => {
+                    document.getElementById("next-btn").classList.remove("hidden");
+                }, 800);
+            }
+            updateHUD();
+        }
+
+        function triggerMarioJump() {
+            if (!marioJumping) {
+                marioJumping = true;
+                jumpVelocity = -8;
+            }
+        }
+
+        function advanceQuest() {
+            currentIdx++;
+            if (currentIdx < questQuestions.length) {
+                loadQuestion();
+            } else {
+                finishQuest();
+            }
+        }
+
+        function finishQuest() {
+            playRetroSound("win");
+            document.getElementById("game-view").classList.add("hidden");
+            document.getElementById("victory-screen").classList.remove("hidden");
+
+            document.getElementById("final-coins").textContent = scoreCoins;
+            document.getElementById("final-streak").textContent = bestStreak;
+
+            if (window.confetti) {
+                confetti({ particleCount: 150, spread: 100, origin: { y: 0.5 } });
+            }
+        }
+
+        // CANVAS RENDERING ENGINE (2D Mario Quest Scene)
+        function animateCanvas() {
+            // Update Mario Position Smoothly
+            if (marioX < targetMarioX) {
+                marioX += 3;
+            }
+
+            // Physics for Mario Jump
+            if (marioJumping) {
+                marioY += jumpVelocity;
+                jumpVelocity += 0.5; // gravity
+                if (marioY >= 110) {
+                    marioY = 110;
+                    marioJumping = false;
+                }
+            }
+
+            renderCanvasStage();
+
+            if (!document.getElementById("game-view").classList.contains("hidden")) {
+                requestAnimationFrame(animateCanvas);
+            }
+        }
+
+        function renderCanvasStage() {
+            if (!ctx) return;
+
+            // Clear Background
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Ground Grass
+            ctx.fillStyle = "#22c55e";
+            ctx.fillRect(0, 140, canvas.width, 40);
+            ctx.fillStyle = "#15803d";
+            ctx.fillRect(0, 140, canvas.width, 6);
+
+            // Finish Flag Castle at End
+            const flagX = canvas.width - 50;
+            ctx.fillStyle = "#cbd5e1";
+            ctx.fillRect(flagX, 80, 4, 60); // Flag pole
+            ctx.fillStyle = "#ef4444";
+            ctx.beginPath();
+            ctx.moveTo(flagX + 4, 80);
+            ctx.lineTo(flagX + 25, 90);
+            ctx.lineTo(flagX + 4, 100);
+            ctx.fill();
+
+            // Render Quest Checkpoint Obstacles/Blocks
+            obstacles.forEach((obs) => {
+                if (obs.type === "goomba") {
+                    // Goomba / Decimal Monster
+                    ctx.fillStyle = obs.cleared ? "#94a3b8" : "#b45309";
+                    ctx.beginPath();
+                    ctx.arc(obs.x, 130, 10, 0, Math.PI * 2);
+                    ctx.fill();
+                    // Monster Eyes
+                    if(!obs.cleared) {
+                        ctx.fillStyle = "#ffffff";
+                        ctx.fillRect(obs.x - 5, 125, 3, 4);
+                        ctx.fillRect(obs.x + 2, 125, 3, 4);
+                    }
+                } else {
+                    // Mystery Question Block
+                    ctx.fillStyle = obs.cleared ? "#64748b" : "#eab308";
+                    ctx.fillRect(obs.x - 10, 95, 20, 20);
+                    ctx.strokeStyle = "#78350f";
+                    ctx.strokeRect(obs.x - 10, 95, 20, 20);
+                    // Question mark text
+                    ctx.fillStyle = "#ffffff";
+                    ctx.font = "bold 12px sans-serif";
+                    ctx.fillText("?", obs.x - 4, 110);
+                }
+            });
+
+            // Draw Mario Character Sprite (Pixel Style Hero)
+            ctx.fillStyle = "#ef4444"; // Red Cap & Shirt
+            ctx.fillRect(marioX - 8, marioY - 14, 16, 12);
+            ctx.fillStyle = "#3b82f6"; // Blue Overalls
+            ctx.fillRect(marioX - 6, marioY - 2, 12, 14);
+            ctx.fillStyle = "#fde047"; // Yellow Buttons
+            ctx.fillRect(marioX - 4, marioY + 2, 3, 3);
+            ctx.fillRect(marioX + 1, marioY + 2, 3, 3);
+            // Face
+            ctx.fillStyle = "#fed7aa";
+            ctx.fillRect(marioX - 4, marioY - 10, 10, 6);
+        }
+    </script>
+</body>
+</html>
