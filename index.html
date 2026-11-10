@@ -33,7 +33,7 @@
             background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
         }
 
-        /* Jump & Walk Keyframe Animations for HTML/Canvas sprites */
+        /* Jump & Walk Keyframe Animations */
         .mario-bounce {
             animation: marioHop 0.6s ease-in-out infinite alternate;
         }
@@ -127,7 +127,7 @@
                 <!-- World Checkpoint Tag -->
                 <div class="absolute top-3 left-3 bg-slate-950/80 backdrop-blur-md px-3 py-1 rounded-full border border-indigo-400/40 text-xs font-semibold text-amber-300 flex items-center gap-2">
                     <i class="fa-solid fa-flag text-red-400"></i>
-                    <span id="level-tag">Stage 1 / 10</span>
+                    <span id="level-tag">Stage 1 / 12</span>
                 </div>
             </div>
 
@@ -205,7 +205,7 @@
 
     <!-- Game Engine & Interactive Script -->
     <script>
-        // MULTIPLE CHOICE DATASET (Lessons 10 & 11)
+        // MULTIPLE CHOICE DATASET (All 12 Problems from Lessons 10 & 11)
         const questQuestions = [
             // LESSON 10: ADD DECIMALS
             {
@@ -278,6 +278,20 @@
                 hint: "Add 3.54 + 2.80. Align tenths column (5 + 8 = 13 tenths).",
                 wrongExplain: "3.54 + 2.80 = 6.34 Liters. 5 + 8 tenths equals 13 tenths (write 3, carry 1 to ones)."
             },
+            {
+                lesson: "Lesson 10",
+                title: "Problem 6: Model Representation",
+                question: "Determine if this model represents 1.2 + 3.3: A number line starting at 0, moving right to 1.2, then jumping +3.3 to land on 4.5.",
+                options: [
+                    "Yes, because 1.2 + 3.3 = 4.5",
+                    "No, because the model equals 3.5",
+                    "No, because the jump shows forty-five hundredths",
+                    "Yes, because 1.2 + 3.3 = 5.5"
+                ],
+                correctIndex: 0,
+                hint: "Add 1.2 + 3.3 = 4.5. Check if starting at 1.2 and adding a jump of 3.3 lands on 4.5.",
+                wrongExplain: "Yes! 1.2 + 3.3 = 4.5. The number line model correctly demonstrates starting at 1.2 and jumping 3.3 to land at 4.5."
+            },
 
             // LESSON 11: SUBTRACT DECIMALS
             {
@@ -335,6 +349,20 @@
                 correctIndex: 0,
                 hint: "Write 32.6 as 32.60. Regroup 6 tenths into 5 tenths and 10 hundredths: 10 - 7 = 3.",
                 wrongExplain: "32.60 - 8.57 = 24.03. Don't forget to append a zero to 32.6!"
+            },
+            {
+                lesson: "Lesson 11",
+                title: "Problem 5: Related Equations",
+                question: "Which equations can you use to find 54.28 - 24.37 = w?",
+                options: [
+                    "24.37 + w = 54.28 AND 24.37 = 54.28 - w",
+                    "54.28 + 24.37 = w AND w + 54.28 = 24.37",
+                    "24.37 - w = 54.28 AND 54.28 = w - 24.37",
+                    "54.28 + w = 24.37 AND 24.37 + 54.28 = w"
+                ],
+                correctIndex: 0,
+                hint: "Since subtraction is the inverse of addition, Total (54.28) minus Part (24.37) equals Part (w). So Part + Part = Total (24.37 + w = 54.28).",
+                wrongExplain: "Since 54.28 - 24.37 = w, then 24.37 + w = 54.28 and 24.37 = 54.28 - w are true inverse family equations!"
             },
             {
                 lesson: "Lesson 11",
